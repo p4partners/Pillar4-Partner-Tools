@@ -358,8 +358,8 @@ body{font-family:var(--font);background:var(--off);color:var(--navy);font-size:1
         <div class="io-field"><label class="label">End Date</label><input type="date" class="io-in" id="io-end"></div>
       </div>
       <div class="grid-2">
-        <div class="io-field"><label class="label">P4 Signatory Name</label><input type="text" class="io-in" id="io-p4-sig" placeholder="e.g. Emily Schroeder"></div>
-        <div class="io-field"><label class="label">P4 Signatory Title</label><input type="text" class="io-in" id="io-p4-title" placeholder="e.g. Head of Partnerships"></div>
+        <div class="io-field"><label class="label">P4 Signatory Name</label><input type="text" class="io-in" id="io-p4-sig" placeholder="e.g. Brian Winders"></div>
+        <div class="io-field"><label class="label">P4 Signatory Title</label><input type="text" class="io-in" id="io-p4-title" placeholder="e.g. President"></div>
       </div>
     </div>
   </div>
@@ -375,9 +375,17 @@ body{font-family:var(--font);background:var(--off);color:var(--navy);font-size:1
 
     <div class="deal-box" id="box-flat">
       <div class="deal-box-label">Flat Fee Details</div>
+      <div class="io-field" style="margin-bottom:14px">
+        <label class="label">Payment Structure <span style="color:#DC2626">*</span></label>
+        <select class="io-sel" id="io-flat-structure" onchange="updatePaymentSummary()">
+          <option value="">— Select one —</option>
+          <option value="onetime">One-time payment</option>
+          <option value="installments">Paid in installments</option>
+        </select>
+      </div>
       <div id="flat-rows" class="gap-14">
         <div class="flat-row grid-3">
-          <div class="io-field"><label class="label">Deliverable</label><input type="text" class="io-in" placeholder="e.g. Dedicated Review"></div>
+          <div class="io-field"><label class="label">Deliverable</label><input type="text" class="io-in" value="Content Package"></div>
           <div class="io-field"><label class="label">Amount ($)</label><input type="number" class="io-in" placeholder="5000"></div>
           <div class="io-field"><label class="label">Cadence</label><input type="text" class="io-in" placeholder="e.g. one-time"></div>
         </div>
@@ -1072,7 +1080,24 @@ function updatePaymentSummary(){
   const parts=[];
 
   if(activeDealTypes.has('flat')){
-    const timingText=flatTiming==='completion'?'This is a one-time payment upon completion of the deliverables agreed to in this IO.':flatTiming==='upfront'?'Payment is due upon signing.':'Provider will invoice Company at month-end.';
+    const flatStructure=document.getElementById('io-flat-structure').value;
+    const flatRowsWithAmt=getFlatRows().filter(r=>r.amount);
+    const flatAmounts=flatRowsWithAmt.map(r=>'$'+Number(r.amount).toLocaleString());
+    const flatTotal=flatRowsWithAmt.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+    let timingText;
+    if(flatTiming==='completion'){
+      if(flatStructure==='onetime'){
+        timingText='There is a one-time flat fee to be paid from Company to Provider upon completion of the deliverables agreed to in this IO: '+(flatTotal>0?'$'+flatTotal.toLocaleString():'[amount]')+'.';
+      } else if(flatStructure==='installments'){
+        timingText='There is a flat fee to be paid in the following installments from Company to Provider upon completion of the deliverables agreed to in this IO: '+(flatAmounts.length?flatAmounts.join(', '):'[amount]')+'.';
+      } else {
+        timingText='Please specify whether the flat fee is a one-time payment or paid in installments.';
+      }
+    } else if(flatTiming==='upfront'){
+      timingText='Payment is due upon signing.';
+    } else {
+      timingText='Provider will invoice Company at month-end.';
+    }
     parts.push('<strong>Flat fee:</strong> '+timingText+' Payment terms are '+paymentTerms+'.');
   }
   if(activeDealTypes.has('cpa')){
@@ -1244,8 +1269,8 @@ function buildIOHtml(){
   const date=getV('io-date');
   const startDate=getV('io-start');
   const endDate=getV('io-end');
-  const p4Sig=getV('io-p4-sig');
-  const p4Title=getV('io-p4-title');
+  const p4Sig=getV('io-p4-sig')||'Brian Winders';
+  const p4Title=getV('io-p4-title')||'President';
   const properties=getV('io-properties');
   const scope=getV('io-scope');
   const paymentTerms=getV('io-payment-terms');
@@ -1279,16 +1304,31 @@ function buildIOHtml(){
 
   // Flat fee rows — build a bullet list for the IO
   let flatFeeBullets='';
-  let flatTotal=0;
   if(activeDealTypes.has('flat')&&flatRows.length){
     flatFeeBullets=flatRows.map(r=>`<li>${r.deliverable}${r.amount?': $'+Number(r.amount).toLocaleString():''}${r.cadence?' ('+r.cadence+')':''}</li>`).join('');
-    flatTotal=flatRows.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
   }
 
   // Payment terms row text
   let paymentText='';
   if(activeDealTypes.has('flat')){
-    const timingText=flatTiming==='completion'?'This is a one-time payment upon completion of the deliverables agreed to in this IO.':flatTiming==='upfront'?'Payment is due upon signing.':'Provider will invoice Company at month-end based on the flat fee agreed to in this IO.';
+    const flatStructure=getV('io-flat-structure');
+    const flatRowsWithAmt=flatRows.filter(r=>r.amount);
+    const flatAmounts=flatRowsWithAmt.map(r=>'$'+Number(r.amount).toLocaleString());
+    const flatTotal=flatRowsWithAmt.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+    let timingText;
+    if(flatTiming==='completion'){
+      if(flatStructure==='onetime'){
+        timingText='There is a one-time flat fee to be paid from Company to Provider upon completion of the deliverables agreed to in this IO: '+(flatTotal>0?'$'+flatTotal.toLocaleString():'[amount]')+'.';
+      } else if(flatStructure==='installments'){
+        timingText='There is a flat fee to be paid in the following installments from Company to Provider upon completion of the deliverables agreed to in this IO: '+(flatAmounts.length?flatAmounts.join(', '):'[amount]')+'.';
+      } else {
+        timingText='Please specify whether the flat fee is a one-time payment or paid in installments.';
+      }
+    } else if(flatTiming==='upfront'){
+      timingText='Payment is due upon signing.';
+    } else {
+      timingText='Provider will invoice Company at month-end based on the flat fee agreed to in this IO.';
+    }
     paymentText=`<li>${timingText}</li>`;
   }
   if(activeDealTypes.has('cpa')){
@@ -1370,7 +1410,7 @@ function buildIOHtml(){
         ${hasExhibit?`<li>Specific URLs, targeted products, and launch schedules are detailed in <strong>${exhibitLabel}</strong>, incorporated herein by reference.</li>`:''}
       </ul>
     </td></tr>
-    ${activeDealTypes.has('flat')&&flatRows.length?`<tr><td>Flat Fee</td><td><ul>${flatFeeBullets}${flatTotal>0?`<li style="font-weight:bold;margin-top:6px">Content Package: $${flatTotal.toLocaleString()}</li>`:''}</ul></td></tr>`:''}
+    ${activeDealTypes.has('flat')&&flatRows.length?`<tr><td>Flat Fee</td><td><ul>${flatFeeBullets}</ul></td></tr>`:''}
     ${cpaRow}${cpcRow}${cplRow}
     <tr><td>Payment Terms</td><td><ul>${paymentText}</ul></td></tr>
     ${reviewRights!=='none'?`<tr><td>Content Review</td><td>${reviewText}</td></tr>`:''}
@@ -1433,7 +1473,16 @@ function buildExhibitHtml(){
   </div>`;
 }
 
+function validateFlatStructure(){
+  if(activeDealTypes.has('flat') && !getV('io-flat-structure')){
+    alert('Please specify whether the flat fee is a one-time payment or paid in installments (Deal Structure → Flat Fee Details → Payment Structure).');
+    return false;
+  }
+  return true;
+}
+
 function previewIO(){
+  if(!validateFlatStructure()) return;
   document.getElementById('io-preview-content').innerHTML=buildIOHtml();
   document.getElementById('exhibit-preview-content').innerHTML=buildExhibitHtml();
   const doc=document.querySelector('#io-preview-content .io-doc');
@@ -1456,12 +1505,14 @@ function ioFilename(ext){
 const PRINT_STYLES=`@page{size:8.5in 11in;margin:0.75in}body{font-family:Georgia,serif;font-size:11pt;line-height:1.4;color:#111;margin:0;padding:0}h2{font-size:14pt;text-align:center;margin:0 0 12px 0}p{margin:0 0 6px 0;font-size:11pt}table{width:100%;border-collapse:collapse;margin:8px 0}td{padding:6px 9px;border:1px solid #ccc;vertical-align:top;font-size:10.5pt;line-height:1.35}td:first-child{width:22%;font-weight:bold;background:#f5f5f5}ul{margin:0;padding-left:16px}li{margin-bottom:2px;line-height:1.35}.io-sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:18px}.io-sig-block{border-top:1px solid #333;padding-top:6px;font-size:10pt;line-height:1.55}.exhibit-page{page-break-before:always;padding-top:0}.exhibit-page h3{font-size:13pt;margin:0 0 4px 0}.exhibit-page p{font-size:10.5pt;color:#555;margin:0 0 10px 0}.exhibit-table{width:100%;border-collapse:collapse;font-size:9.5pt}.exhibit-table th{background:#f0f0f0;padding:5px 8px;border:1px solid #ccc;font-weight:bold;text-align:left}.exhibit-table td{padding:5px 8px;border:1px solid #ccc;line-height:1.3}.ex-block{margin-bottom:14px;page-break-inside:avoid}.ex-block-image img{max-width:100%;height:auto;border:1px solid #ddd;border-radius:4px;display:block;margin:0 auto}.ex-block-other{padding:8px 12px;background:#f8fafc;border:1px solid #ddd;border-radius:4px;font-size:10pt}[contenteditable]{outline:none}`;
 
 function downloadIO(){
+  if(!validateFlatStructure()) return;
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>${ioFilename('pdf').replace(/\.pdf$/,'')}</title><style>${PRINT_STYLES}</style></head><body>${buildIOHtml().replace(/class="io-doc"[^>]*>/,'style="padding:0">')}${buildExhibitHtml()}<script>window.onload=()=>{window.print();}<\/script></body></html>`);
   win.document.close();
 }
 
 function downloadIODocx(){
+  if(!validateFlatStructure()) return;
   const brand=getV('io-brand')||'Partner';
   const wordHtml=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${ioFilename('doc')}</title><style>@page{size:8.5in 11in;margin:0.75in}body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.4;color:#111}h2{font-size:14pt;font-weight:bold;text-align:center;margin-bottom:12pt}p{margin-bottom:6pt;font-size:11pt}table{width:100%;border-collapse:collapse;margin:8pt 0}td{padding:6pt 9pt;border:1pt solid #ccc;vertical-align:top;font-size:10.5pt;line-height:1.35}td:first-child{width:22%;font-weight:bold;background:#f5f5f5}ul{margin:0;padding-left:16pt}li{margin-bottom:2pt;line-height:1.35}.io-sig-grid{display:table;width:100%;margin-top:18pt}.io-sig-block{display:table-cell;width:50%;border-top:1pt solid #333;padding-top:6pt;font-size:10pt;line-height:1.55;padding-right:20pt}.exhibit-page{page-break-before:always}.exhibit-table{width:100%;border-collapse:collapse;font-size:9.5pt}.exhibit-table th{background:#f0f0f0;padding:5pt 8pt;border:1pt solid #ccc;font-weight:bold}.exhibit-table td{padding:5pt 8pt;border:1pt solid #ccc;line-height:1.3}.ex-block{margin-bottom:14pt}.ex-block img{max-width:100%;height:auto}</style></head><body><div>${buildIOHtml().replace(/<div class="io-doc"[^>]*>/,'<div>').replace(/<\/div>\s*$/,'')}</div>${buildExhibitHtml()}</body></html>`;
   const blob=new Blob([wordHtml],{type:'application/msword'});
@@ -1539,7 +1590,7 @@ function captureIOState(){
     'cpa-comp-type','cpa-dollar','cpa-pct','cpa-cookie','cpa-epc','cpa-network',
     'cpc-rate','cpc-reporting','cpc-network','cpc-positions','cpc-estimate',
     'cpl-def','cpl-rate','cpl-verify','cpl-cookie',
-    'io-payment-terms','io-flat-timing','io-payment-notes',
+    'io-payment-terms','io-flat-timing','io-flat-structure','io-payment-notes',
     'io-review-rights','io-notes','exhibit-label'
   ];
   const fields={};
@@ -1600,7 +1651,7 @@ function restoreIOState(state){
   // Flat rows
   const flatRowsContainer=document.getElementById('flat-rows');
   flatRowsContainer.innerHTML='';
-  const rows=state.flatRows&&state.flatRows.length?state.flatRows:[{deliverable:'',amount:'',cadence:''}];
+  const rows=state.flatRows&&state.flatRows.length?state.flatRows:[{deliverable:'Content Package',amount:'',cadence:''}];
   rows.forEach(r=>{
     const row=document.createElement('div');
     row.className='flat-row grid-3';
@@ -1777,7 +1828,7 @@ function newIO(){
   const blankState={
     fields:{},
     channels:['website'],
-    flatRows:[{deliverable:'',amount:'',cadence:''}],
+    flatRows:[{deliverable:'Content Package',amount:'',cadence:''}],
     activeDealTypes:[],
     exhibitFiles:[]
   };
