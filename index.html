@@ -1893,5 +1893,30 @@ document.getElementById('io-date').value=new Date().toISOString().split('T')[0];
 recalc();
 renderSavedList();
 </script>
+  <script>
+window.addEventListener('DOMContentLoaded', () => {
+  // 1. Read the parameters out of the browser's URL address bar
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  const clientData = urlParams.get('client');
+  const budgetData = urlParams.get('budget');
+  const dateData = urlParams.get('date');
+
+  // 2. Automatically drop that data into your existing HTML inputs
+  // IMPORTANT: Change 'client-field-id' etc. to match your real input IDs!
+  if (clientData) {
+    const clientInput = document.getElementById('client-field-id');
+    if (clientInput) clientInput.value = clientData;
+  }
+  if (budgetData) {
+    const budgetInput = document.getElementById('budget-field-id');
+    if (budgetInput) budgetInput.value = budgetData;
+  }
+  if (dateData) {
+    const dateInput = document.getElementById('date-field-id');
+    if (dateInput) dateInput.value = dateData;
+  }
+});
+</script>
 </body>
 </html>
