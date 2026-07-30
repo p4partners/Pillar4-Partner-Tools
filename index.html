@@ -1894,28 +1894,24 @@ recalc();
 renderSavedList();
 </script>
   <script>
-window.addEventListener('DOMContentLoaded', () => {
-  // 1. Read the parameters out of the browser's URL address bar
-  const urlParams = new URLSearchParams(window.location.search);
+document.getElementById('parse-local-btn').addEventListener('click', () => {
+  const text = document.getElementById('raw-email-input').value;
   
-  const clientData = urlParams.get('client');
-  const budgetData = urlParams.get('budget');
-  const dateData = urlParams.get('date');
+  // 1. A basic formula to look for dollar amounts (e.g., $5,000 or $500)
+  const budgetMatch = text.match(/\$\d{1,3}(,\d{3})*(\.\d{2})?|\d+k/i);
+  if (budgetMatch) {
+    const budgetInput = document.getElementById('budget-field-id'); // Change to your real ID
+    if (budgetInput) budgetInput.value = budgetMatch[0];
+  }
 
-  // 2. Automatically drop that data into your existing HTML inputs
-  // IMPORTANT: Change 'client-field-id' etc. to match your real input IDs!
-  if (clientData) {
-    const clientInput = document.getElementById('client-field-id');
-    if (clientInput) clientInput.value = clientData;
+  // 2. A basic formula to look for standard date patterns (e.g., 08/15/2026 or 8/15)
+  const dateMatch = text.match(/\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?/);
+  if (dateMatch) {
+    const dateInput = document.getElementById('date-field-id'); // Change to your real ID
+    if (dateInput) dateInput.value = dateMatch[0];
   }
-  if (budgetData) {
-    const budgetInput = document.getElementById('budget-field-id');
-    if (budgetInput) budgetInput.value = budgetData;
-  }
-  if (dateData) {
-    const dateInput = document.getElementById('date-field-id');
-    if (dateInput) dateInput.value = dateData;
-  }
+
+  alert("Local basic scan complete! For complex emails, use your open Claude terminal to parse details.");
 });
 </script>
 </body>
